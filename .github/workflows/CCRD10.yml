@@ -24,26 +24,7 @@ on:
         description: 'CRD Auth Code for Runner 5'
         required: true
         type: string
-      auth_code_6:
-        description: 'CRD Auth Code for Runner 6'
-        required: true
-        type: string
-      auth_code_7:
-        description: 'CRD Auth Code for Runner 7'
-        required: true
-        type: string
-      auth_code_8:
-        description: 'CRD Auth Code for Runner 8'
-        required: true
-        type: string
-      auth_code_9:
-        description: 'CRD Auth Code for Runner 9'
-        required: true
-        type: string
-      auth_code_10:
-        description: 'CRD Auth Code for Runner 10'
-        required: true
-        type: string
+      
 
 jobs:
   build:
@@ -56,7 +37,7 @@ jobs:
       # This ensures that a failure in one job does not cancel the others.
       fail-fast: false
       matrix:
-        runner_id: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+        runner_id: [1, 2, 3, 4, 5]
         # 'include' is used to map each runner ID to its corresponding auth code input.
         include:
           - runner_id: 1
@@ -69,16 +50,7 @@ jobs:
             auth_code: ${{ github.event.inputs.auth_code_4 }}
           - runner_id: 5
             auth_code: ${{ github.event.inputs.auth_code_5 }}
-          - runner_id: 6
-            auth_code: ${{ github.event.inputs.auth_code_6 }}
-          - runner_id: 7
-            auth_code: ${{ github.event.inputs.auth_code_7 }}
-          - runner_id: 8
-            auth_code: ${{ github.event.inputs.auth_code_8 }}
-          - runner_id: 9
-            auth_code: ${{ github.event.inputs.auth_code_9 }}
-          - runner_id: 10
-            auth_code: ${{ github.event.inputs.auth_code_10 }}
+          
 
     steps:
       - name: Download & Install Chrome Remote Desktop
