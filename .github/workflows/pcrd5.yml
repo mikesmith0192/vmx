@@ -1,4 +1,4 @@
-name: Windows - CRD Sessions via Depot Project
+name: Windows - CRD Sessions via Depot Token
 
 on:
   # This section configures the manual trigger to ask for auth codes.
@@ -30,21 +30,16 @@ jobs:
     # The job name is dynamic and includes the runner ID from the matrix.
     name: Runner ${{ matrix.runner_id }}
     
-    # Specify the Depot runner image.
+    # This correctly requests a Depot runner.
     runs-on: depot-windows-2022
     timeout-minutes: 360
 
-    # This permissions block is required for OIDC authentication, just like the sample.
-    permissions:
-      id-token: write
-      contents: read
+    # NOTE: The 'permissions' block for OIDC has been removed. It is not needed for this method.
 
     strategy:
-      # This ensures that a failure in one job does not cancel the others.
       fail-fast: false
       matrix:
         runner_id: [1, 2, 3, 4, 5]
-        # 'include' is used to map each runner ID to its corresponding auth code input.
         include:
           - runner_id: 1
             auth_code: ${{ github.event.inputs.auth_code_1 }}
@@ -58,13 +53,12 @@ jobs:
             auth_code: ${{ github.event.inputs.auth_code_5 }}
 
     steps:
-      # This action handles OIDC authentication and connects the job to your Depot project.
-      # This is the key step from the sample you provided.
+      # This step now uses your new DEPOT_TOKEN secret to authenticate.
+      # The 'project' key has been removed.
       - name: Setup Depot
         uses: depot/setup-action@v1
         with:
-          # Replace 'YOUR_PROJECT_ID' with your actual Depot Project ID.
-          project: vm2jjxjm5k
+          depot-token: ${{ secrets.DEPOT_TOKEN }}
 
       - name: Download & Install Chrome Remote Desktop
         run: |
@@ -78,8 +72,6 @@ jobs:
       - name: Keep Runner Alive for 6 Hours
         shell: pwsh
         run: |
-          # This single command pauses the script for 21600 seconds (6 hours)
-          # to keep the runner session active.
           Write-Host "Runner is now active. Keeping alive for 6 hours."
           Start-Sleep -Seconds 21600
           Write-Host "6-hour session has completed."
