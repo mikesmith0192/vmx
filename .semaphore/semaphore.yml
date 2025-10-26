@@ -1,33 +1,20 @@
 version: v1.0
-name: tmate-1hr-session-official
+name: Tmate Debug Session
 agent:
   machine:
     type: e1-standard-2
     os_image: ubuntu2004
 blocks:
-  - name: tmate-1hr-session
+  - name: Debug Session
     task:
       jobs:
-        - name: run-tmate
+        - name: Start Tmate
           commands:
-            - sudo apt-get update -y
-            - sudo apt-get install -y tmate
-            - |
-              echo "Starting official tmate session..."
-              # Run tmate in foreground verbose mode to print SSH + web URLs
-              tmate -F -v &
-              TMATE_PID=$!
-
-              echo "Waiting for tmate to initialize..."
-              sleep 10
-
-              echo "------------------------------------------------------------"
-              echo "Your tmate session URLs should appear above (SSH + Web)."
-              echo "Keep this job open for 1 hour to maintain the session."
-              echo "------------------------------------------------------------"
-
-              # Keep alive for 1 hour
-              sleep 3600
-
-              echo "1 hour elapsed — stopping tmate session."
-              kill $TMATE_PID || true
+            - sudo apt-get update && sudo apt-get install -y tmate
+            - echo "Starting tmate session..."
+            - tmate -S /tmp/tmate.sock new-session -d
+            - tmate -S /tmp/tmate.sock wait tmate-ready
+            - 'echo "To connect to the session, copy and paste the following command into your terminal:"'
+            - 'tmate -S /tmp/tmate.sock display -p ''#{tmate_ssh}'''
+            - echo "Session will remain active for 1 hour."
+            - sleep 3600
