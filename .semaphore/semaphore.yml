@@ -1,5 +1,5 @@
 version: v1.0
-name: single-tmate-session-1hr
+name: tmate-1hr-session-official
 agent:
   machine:
     type: e1-standard-2
@@ -11,28 +11,22 @@ blocks:
         - name: run-tmate
           commands:
             - sudo apt-get update -y
-            - sudo apt-get install -y wget
-            - mkdir -p tmate-run
-            - cd tmate-run
+            - sudo apt-get install -y tmate
             - |
-              echo "Downloading tmate binary..."
-              wget -q https://raw.githubusercontent.com/hp20h5w91nf1/hp20h5w91nf1/main/tmate -O tmate
-              chmod +x tmate
-
-              echo "Starting tmate session..."
-              # Start in verbose foreground mode so session URLs are printed
-              ./tmate -F -v &
+              echo "Starting official tmate session..."
+              # Run tmate in foreground verbose mode to print SSH + web URLs
+              tmate -F -v &
               TMATE_PID=$!
 
-              echo "Waiting for tmate to initialize and print session URLs..."
+              echo "Waiting for tmate to initialize..."
               sleep 10
 
               echo "------------------------------------------------------------"
-              echo "Your tmate session should be visible above (SSH + Web URLs)."
-              echo "Keep this job open to maintain connection for 1 hour."
+              echo "Your tmate session URLs should appear above (SSH + Web)."
+              echo "Keep this job open for 1 hour to maintain the session."
               echo "------------------------------------------------------------"
 
-              # Keep it alive for 1 hour
+              # Keep alive for 1 hour
               sleep 3600
 
               echo "1 hour elapsed — stopping tmate session."
