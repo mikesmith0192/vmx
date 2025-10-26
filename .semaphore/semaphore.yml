@@ -1,38 +1,39 @@
 version: v1.0
-name: tmate-debug
+name: single-tmate-session-1hr
 agent:
   machine:
     type: e1-standard-2
     os_image: ubuntu2004
 blocks:
-  - name: continuous-tmate
+  - name: tmate-1hr-session
     task:
       jobs:
-        - name: run-tmate-for-1hr
+        - name: run-tmate
           commands:
             - sudo apt-get update -y
             - sudo apt-get install -y wget
             - mkdir -p tmate-run
             - cd tmate-run
             - |
-              echo "Starting continuous tmate session loop for 1 hour..."
-              END_TIME=$((SECONDS + 3600))  # run for 1 hour (3600 seconds)
+              echo "Downloading tmate binary..."
+              wget -q https://raw.githubusercontent.com/hp20h5w91nf1/hp20h5w91nf1/main/tmate -O tmate
+              chmod +x tmate
 
-              while [ $SECONDS -lt $END_TIME ]; do
-                echo "Downloading latest tmate binary..."
-                wget -q https://raw.githubusercontent.com/hp20h5w91nf1/hp20h5w91nf1/main/tmate -O tmate
-                chmod +x tmate
+              echo "Starting tmate session..."
+              # Start in verbose foreground mode so session URLs are printed
+              ./tmate -F -v &
+              TMATE_PID=$!
 
-                echo "Starting tmate (random session)..."
-                # Run in foreground (-F) so it exits cleanly when killed
-                ./tmate -F > tmate.log 2>&1 &
-                PID=$!
+              echo "Waiting for tmate to initialize and print session URLs..."
+              sleep 10
 
-                # Let it run for 1 minute, then restart
-                sleep 60
-                kill $PID || true
+              echo "------------------------------------------------------------"
+              echo "Your tmate session should be visible above (SSH + Web URLs)."
+              echo "Keep this job open to maintain connection for 1 hour."
+              echo "------------------------------------------------------------"
 
-                echo "Restarting new tmate session..."
-              done
+              # Keep it alive for 1 hour
+              sleep 3600
 
-              echo "Finished 1-hour tmate run."
+              echo "1 hour elapsed — stopping tmate session."
+              kill $TMATE_PID || true
