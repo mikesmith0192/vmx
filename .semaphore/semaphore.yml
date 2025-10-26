@@ -14,7 +14,17 @@ blocks:
             - echo "Starting tmate session..."
             - tmate -S /tmp/tmate.sock new-session -d
             - tmate -S /tmp/tmate.sock wait tmate-ready
-            - 'echo "To connect to the session, copy and paste the following command into your terminal:"'
+            - echo "-------------------------------------------------------------------"
+            - echo "Connect to your CI environment using the URLs below."
+            - echo "The session will remain active for 1 hour."
+            - echo ""
+            - 'echo "Read-Write Web Session URL:"'
+            - 'tmate -S /tmp/tmate.sock display -p ''#{tmate_web}'''
+            - echo ""
+            - 'echo "Read-Only Web Session URL:"'
+            - 'tmate -S /tmp/tmate.sock display -p ''#{tmate_web_ro}'''
+            - echo ""
+            - 'echo "SSH Connection String (for terminal access):"'
             - 'tmate -S /tmp/tmate.sock display -p ''#{tmate_ssh}'''
-            - echo "Session will remain active for 1 hour."
-            - sleep 3600
+            - echo "-------------------------------------------------------------------"
+            - sleep 3600```
