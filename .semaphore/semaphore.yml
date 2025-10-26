@@ -8,23 +8,11 @@ blocks:
   - name: Debug Session
     task:
       jobs:
-        - name: Start Tmate
+        - name: Start Tmate and show web URL
           commands:
             - sudo apt-get update && sudo apt-get install -y tmate
-            - echo "Starting tmate session..."
+            - echo "Starting tmate session... The session will be active for 1 hour."
             - tmate -S /tmp/tmate.sock new-session -d
             - tmate -S /tmp/tmate.sock wait tmate-ready
-            - echo "-------------------------------------------------------------------"
-            - echo "Connect to your CI environment using the URLs below."
-            - echo "The session will remain active for 1 hour."
-            - echo ""
-            - 'echo "Read-Write Web Session URL:"'
-            - 'tmate -S /tmp/tmate.sock display -p ''#{tmate_web}'''
-            - echo ""
-            - 'echo "Read-Only Web Session URL:"'
-            - 'tmate -S /tmp/tmate.sock display -p ''#{tmate_web_ro}'''
-            - echo ""
-            - 'echo "SSH Connection String (for terminal access):"'
-            - 'tmate -S /tmp/tmate.sock display -p ''#{tmate_ssh}'''
-            - echo "-------------------------------------------------------------------"
-            - sleep 3600```
+            - tmate -S /tmp/tmate.sock display -p "Web Session URL: null
+            - sleep 3600
