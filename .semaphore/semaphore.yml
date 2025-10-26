@@ -1,0 +1,27 @@
+version: v1.0
+name: Tmate Debug Session
+agent:
+  machine:
+    type: e1-standard-2
+    os_image: ubuntu2004
+blocks:
+  - name: Start Tmate Session
+    task:
+      jobs:
+        - name: Debug with Tmate
+          prologue:
+            commands:
+              - sudo apt-get update
+              - sudo apt-get install -y tmate
+          commands:
+            - echo "Starting tmate session..."
+            - tmate -S /tmp/tmate.sock new-session -d
+            - tmate -S /tmp/tmate.sock wait tmate-ready
+            - echo "----------------------------------------------------"
+            - 'echo "Tmate session is ready! Connect using the details below:"'
+            - tmate -S /tmp/tmate.sock display -p 'SSH Session: null
+            - tmate -S /tmp/tmate.sock display -p 'Web Shell URL: null
+            - echo "----------------------------------------------------"
+            - echo "Session will remain active for 1 hour."
+            - sleep 3600
+            - echo "Session time is over. Terminating job."
