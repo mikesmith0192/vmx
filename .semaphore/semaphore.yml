@@ -14,5 +14,5 @@ blocks:
             - echo "Starting tmate session... The session will be active for 1 hour."
             - tmate -S /tmp/tmate.sock new-session -d
             - tmate -S /tmp/tmate.sock wait tmate-ready
-            - tmate -S /tmp/tmate.sock display -p "Web Session URL: null
+            - 'tmate -S /tmp/tmate.sock display -p ''#{tmate_web}'''
             - sleep 3600
