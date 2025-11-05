@@ -1,7 +1,7 @@
 name: CCRD10
 
 on:
-  # This section configures the manual trigger to ask for 10 auth codes.
+  # This section configures the manual trigger to ask for 5 auth codes.
   workflow_dispatch:
     inputs:
       auth_code_1:
@@ -25,7 +25,6 @@ on:
         required: true
         type: string
       
-
 jobs:
   build:
     # The job name is dynamic and includes the runner ID from the matrix.
@@ -51,42 +50,29 @@ jobs:
           - runner_id: 5
             auth_code: ${{ github.event.inputs.auth_code_5 }}
           
-
     steps:
       - name: Download & Install Chrome Remote Desktop
         run: |
           Invoke-WebRequest -Uri "https://dl.google.com/edgedl/chrome-remote-desktop/chromeremotedesktophost.msi" -OutFile "chromeremotedesktophost.msi"
           Start-Process msiexec.exe -Wait -ArgumentList '/i chromeremotedesktophost.msi /quiet'
 
-      - name: Start Chrome Remote Desktop Host
-        # The auth code and runner ID from the matrix are used here.
-        # The computer name is appended with the runner ID for uniqueness.
-        run: |
-          & "${env:ProgramFiles(x86)}\Google\Chrome Remote Desktop\CurrentVersion\remoting_start_host.exe" --code="${{ matrix.auth_code }}" --redirect-url="https://remotedesktop.google.com/_/oauthredirect" --name="$env:COMPUTERNAME-${{ matrix.runner_id }}" --pin=112233
+      - name: Start Chrome Remote Desktop Host with Admin Privileges
+        # Uses a specialized action to run the command with SYSTEM privileges,
+        # which is required to start the host service and avoids permission errors.
+        uses: t-actions/run-as-admin@v1
+        with:
+          command: |
+            & "${env:ProgramFiles(x86)}\Google\Chrome Remote Desktop\CurrentVersion\remoting_start_host.exe" --code="${{ matrix.auth_code }}" --redirect-url="https://remotedesktop.google.com/_/oauthredirect" --name="$env:COMPUTERNAME-${{ matrix.runner_id }}" --pin=112233
 
-      - name: Time Counter
+      - name: Keep Runner Alive for 6 Hours
+        # This single step keeps the job running for the desired duration.
         run: |
-          # Simple PowerShell timer for 6 hours (21600 seconds)
           $startTime = Get-Date
-          $endTime = $startTime.AddSeconds(21600)
-          Write-Host "Timer started at $startTime"
+          $endTime = $startTime.AddSeconds(21600) # 6 hours
+          Write-Host "Keep-alive timer started at $startTime. Will run for 6 hours."
           while ((Get-Date) -lt $endTime) {
             $elapsed = (Get-Date) - $startTime
-            Write-Host "Elapsed time: $($elapsed.Hours)h $($elapsed.Minutes)m $($elapsed.Seconds)s"
-            Start-Sleep -Seconds 60  # Update every minute
+            Write-Host "Workflow is running. Elapsed time: $($elapsed.Hours)h $($elapsed.Minutes)m $($elapsed.Seconds)s"
+            Start-Sleep -Seconds 300  # Update status every 5 minutes
           }
-          Write-Host "Timer completed after 6 hours at $(Get-Date)"
-
-      - name: Keep Alive
-        run: |
-          # Set duration to 6 hours (21600 seconds)
-          $duration = 21600
-          $interval = 300  # Check every 5 minutes (300 seconds)
-          $endTime = (Get-Date).AddSeconds($duration)
-
-          Write-Host "Starting keep-alive loop for 6 hours..."
-          while ((Get-Date) -lt $endTime) {
-            Write-Host "Workflow is still alive at $(Get-Date)"
-            Start-Sleep -Seconds $interval
-          }
-          Write-Host "Keep-alive completed after 6 hours."
+          Write-Host "6-hour keep-alive timer completed at $(Get-Date)."
