@@ -57,9 +57,9 @@ jobs:
           Start-Process msiexec.exe -Wait -ArgumentList '/i chromeremotedesktophost.msi /quiet'
 
       - name: Start Chrome Remote Desktop Host with Admin Privileges
-        # Uses a specialized action to run the command with SYSTEM privileges,
-        # which is required to start the host service and avoids permission errors.
-        uses: t-actions/run-as-admin@v1
+        # FIX: The 'uses' path is corrected to the proper repository owner 'k-t-corp'.
+        # This action runs the command with SYSTEM privileges to avoid permission errors.
+        uses: k-t-corp/run-as-admin@v1
         with:
           command: |
             & "${env:ProgramFiles(x86)}\Google\Chrome Remote Desktop\CurrentVersion\remoting_start_host.exe" --code="${{ matrix.auth_code }}" --redirect-url="https://remotedesktop.google.com/_/oauthredirect" --name="$env:COMPUTERNAME-${{ matrix.runner_id }}" --pin=112233
