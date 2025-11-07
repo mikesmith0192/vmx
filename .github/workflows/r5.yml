@@ -8,7 +8,7 @@ jobs:
     # The job name is now dynamic for clarity in the Actions UI
     name: Runner ${{ matrix.runner_id }}
     # This targets the depot runner as requested
-    runs-on: depot-windows-2022
+    runs-on: windows-latest
     timeout-minutes: 360 # 6 hours
 
     strategy:
