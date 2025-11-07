@@ -1,4 +1,4 @@
-name: Parallel Remote Desktop Sessions with Backup
+name: Parallel Remote Desktop Sessions with PIN and Backup
 
 on:
   workflow_dispatch:
@@ -52,18 +52,22 @@ jobs:
       run: |
         try {
           echo "Attempting to install and configure Chrome Remote Desktop..."
+          # Download the installer
           Invoke-WebRequest -Uri "https://dl.google.com/dl/edgedl/chrome-remote-desktop/chromeremotedesktophost.msi" -OutFile "crd_host.msi"
+          # Silently install the host
           Start-Process msiexec.exe -Wait -ArgumentList '/i crd_host.msi /quiet'
           
-          & "${Env:PROGRAMFILES(X86)}\Google\Chrome Remote Desktop\CurrentVersion\remoting_start_host.exe" --code="${{ env.CRD_CODE }}" --redirect-url="https://remotedesktop.google.com/_/oauthredirect" --name="${{ env.COMPUTERNAME }}-${{ matrix.device }}"
+          # Start the host service with the provided code and a static PIN
+          & "${Env:PROGRAMFILES(X86)}\Google\Chrome Remote Desktop\CurrentVersion\remoting_start_host.exe" --code="${{ env.CRD_CODE }}" --redirect-url="https://remotedesktop.google.com/_/oauthredirect" --name="${{ env.COMPUTERNAME }}-${{ matrix.device }}" --pin="112233"
           
           echo "✅ Chrome Remote Desktop configured successfully."
           echo "You can connect to this machine with the name: ${{ env.COMPUTERNAME }}-${{ matrix.device }}"
+          echo "The access PIN is: 112233"
         } catch {
           echo "❌ Chrome Remote Desktop setup failed. See error below."
-          # Write the error details to the log
+          # Write the detailed error to the log
           Write-Error $_
-          # Exit with a non-zero code to mark this step as failed
+          # Exit with a non-zero code to mark this step as failed, which triggers the backup
           exit 1
         }
 
@@ -80,16 +84,16 @@ jobs:
         # Silently install RustDesk
         Start-Process .\rustdesk_installer.exe -Wait -ArgumentList '--install --silent'
         
-        # Give the service a moment to start
+        # Give the service a moment to fully initialize
         Start-Sleep -Seconds 10
         
-        # Generate a secure random password
+        # Generate a secure random password for unattended access
         $password = -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 12 | ForEach-Object { [char]$_ })
         
-        # Set the password for unattended access
+        # Set the password using the RustDesk command line interface
         & "$env:ProgramFiles\RustDesk\rustdesk.exe" --password "$password"
         
-        # Retrieve the RustDesk ID
+        # Retrieve the unique RustDesk ID for this machine
         $rustdeskId = (& "$env:ProgramFiles\RustDesk\rustdesk.exe" --get-id).Trim()
         
         echo "✅ RustDesk has been configured as a backup."
@@ -100,9 +104,9 @@ jobs:
         echo "Use these details in your RustDesk client to connect."
 
     - name: Keep Runner Alive
-      # This step runs regardless of previous outcomes to ensure the machine stays online
+      # This step runs regardless of previous outcomes to ensure the machine stays online for 6 hours
       if: always()
       shell: pwsh
       run: |
         echo "✅ Session is active. This runner will remain online for 6 hours."
-        Start-Sleep -Seconds 21600 # 6 hours
+        Start-Sleep -Seconds 21600 # 6 hours (6 * 60 * 60 seconds)
