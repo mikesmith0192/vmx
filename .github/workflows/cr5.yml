@@ -1,0 +1,108 @@
+name: Parallel Remote Desktop Sessions with Backup
+
+on:
+  workflow_dispatch:
+    inputs:
+      crd_code_1:
+        description: 'CRD Auth Code for Device 1'
+        required: true
+        type: string
+      crd_code_2:
+        description: 'CRD Auth Code for Device 2'
+        required: true
+        type: string
+      crd_code_3:
+        description: 'CRD Auth Code for Device 3'
+        required: true
+        type: string
+      crd_code_4:
+        description: 'CRD Auth Code for Device 4'
+        required: true
+        type: string
+      crd_code_5:
+        description: 'CRD Auth Code for Device 5'
+        required: true
+        type: string
+
+jobs:
+  remote_session:
+    name: Remote Session ${{ matrix.device }}
+    runs-on: windows-latest
+    timeout-minutes: 360 # 6 hours
+
+    strategy:
+      fail-fast: false # Ensures other jobs continue if one fails
+      matrix:
+        device: [1, 2, 3, 4, 5]
+
+    steps:
+    - name: Set up CRD Code for Device ${{ matrix.device }}
+      id: set_code
+      shell: pwsh
+      run: |
+        if (${{ matrix.device }} -eq 1) { echo "CRD_CODE=${{ github.event.inputs.crd_code_1 }}" >> $env:GITHUB_ENV }
+        if (${{ matrix.device }} -eq 2) { echo "CRD_CODE=${{ github.event.inputs.crd_code_2 }}" >> $env:GITHUB_ENV }
+        if (${{ matrix.device }} -eq 3) { echo "CRD_CODE=${{ github.event.inputs.crd_code_3 }}" >> $env:GITHUB_ENV }
+        if (${{ matrix.device }} -eq 4) { echo "CRD_CODE=${{ github.event.inputs.crd_code_4 }}" >> $env:GITHUB_ENV }
+        if (${{ matrix.device }} -eq 5) { echo "CRD_CODE=${{ github.event.inputs.crd_code_5 }}" >> $env:GITHUB_ENV }
+
+    - name: Install and Start Chrome Remote Desktop
+      id: start_crd
+      shell: pwsh
+      run: |
+        try {
+          echo "Attempting to install and configure Chrome Remote Desktop..."
+          Invoke-WebRequest -Uri "https://dl.google.com/dl/edgedl/chrome-remote-desktop/chromeremotedesktophost.msi" -OutFile "crd_host.msi"
+          Start-Process msiexec.exe -Wait -ArgumentList '/i crd_host.msi /quiet'
+          
+          & "${Env:PROGRAMFILES(X86)}\Google\Chrome Remote Desktop\CurrentVersion\remoting_start_host.exe" --code="${{ env.CRD_CODE }}" --redirect-url="https://remotedesktop.google.com/_/oauthredirect" --name="${{ env.COMPUTERNAME }}-${{ matrix.device }}"
+          
+          echo "✅ Chrome Remote Desktop configured successfully."
+          echo "You can connect to this machine with the name: ${{ env.COMPUTERNAME }}-${{ matrix.device }}"
+        } catch {
+          echo "❌ Chrome Remote Desktop setup failed. See error below."
+          # Write the error details to the log
+          Write-Error $_
+          # Exit with a non-zero code to mark this step as failed
+          exit 1
+        }
+
+    - name: Setup RustDesk as Backup
+      # This step only runs if the previous 'start_crd' step failed
+      if: failure()
+      shell: pwsh
+      run: |
+        echo "⚠️ CRD setup failed. Initializing RustDesk as a backup..."
+        
+        # Download the latest RustDesk installer
+        Invoke-WebRequest -Uri "https://github.com/rustdesk/rustdesk/releases/download/1.2.3/rustdesk-1.2.3-x86_64.exe" -OutFile "rustdesk_installer.exe"
+        
+        # Silently install RustDesk
+        Start-Process .\rustdesk_installer.exe -Wait -ArgumentList '--install --silent'
+        
+        # Give the service a moment to start
+        Start-Sleep -Seconds 10
+        
+        # Generate a secure random password
+        $password = -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 12 | ForEach-Object { [char]$_ })
+        
+        # Set the password for unattended access
+        & "$env:ProgramFiles\RustDesk\rustdesk.exe" --password "$password"
+        
+        # Retrieve the RustDesk ID
+        $rustdeskId = (& "$env:ProgramFiles\RustDesk\rustdesk.exe" --get-id).Trim()
+        
+        echo "✅ RustDesk has been configured as a backup."
+        echo "=============================================="
+        echo "  RUSTDESK ID: $rustdeskId"
+        echo "  RUSTDESK PASSWORD: $password"
+        echo "=============================================="
+        echo "Use these details in your RustDesk client to connect."
+
+    - name: Keep Runner Alive
+      # This step runs regardless of previous outcomes to ensure the machine stays online
+      if: always()
+      shell: pwsh
+      run: |
+        echo "✅ Session is active. This runner will remain online for 6 hours."
+        Start-Sleep -Seconds 21600 # 6 hours
