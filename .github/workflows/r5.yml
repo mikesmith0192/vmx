@@ -1,0 +1,35 @@
+name: Windows - RustDesk (5x Parallel)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    # The job name is now dynamic for clarity in the Actions UI
+    name: Runner ${{ matrix.runner_id }}
+    # This targets the depot runner as requested
+    runs-on: depot-windows-2022
+    timeout-minutes: 360 # 6 hours
+
+    strategy:
+      # This ensures that if one job fails, the others will continue running.
+      fail-fast: false
+      # This matrix creates 5 jobs that run in parallel.
+      matrix:
+        runner_id: [1, 2, 3, 4, 5]
+
+    steps:
+      - name: Downloading & Installing Essentials
+        run: |
+          Invoke-WebRequest -Uri "https://www.dropbox.com/scl/fi/qdyd4p9t6xoabl95n5o3g/Downloads.bat?rlkey=snr74vv1vr8k5suujugvrhjtm&dl=1" -OutFile "Downloads.bat"
+          cmd /c Downloads.bat
+      # Note: The name of this step was "Log In To AnyDesk" but the workflow is named "RustDesk".
+      # I am assuming the show.bat file handles the correct application.
+      - name: Start Remote Session
+        run: cmd /c show.bat
+
+      - name: Keep Runner Alive
+        # This single, efficient step keeps the job active for the desired duration.
+        run: |
+          Write-Host "Runner is active. This job will remain open for approximately 6 hours."
+          Start-Sleep -Seconds 21000
